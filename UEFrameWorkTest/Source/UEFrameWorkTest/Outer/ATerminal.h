@@ -108,7 +108,10 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category = "Shop")
 	TArray<UDA_ShopItem*> GetAvailableItems() const { return AvailableItems; }
-
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop")
+	FTimerHandle DeliveryTimerHandle;
+	
 private:
 	/**
 	 * 배송 시뮬레이션 타이머 콜백

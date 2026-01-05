@@ -1,5 +1,7 @@
 // GHOST IN THE MONITOR - Portal Mechanic Component (Meta Bridge)
 #include "Meta/BPC_PortalMechanic.h"
+
+#include "Engine/OverlapResult.h"
 #include "Interface/BPI_RPGCombat.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -90,7 +92,7 @@ void UBP_PortalMechanic::FindAndApplyImpactToActors(FVector CenterPoint, float I
 		OverlapResults,
 		CenterPoint,
 		FQuat::Identity,
-		FCC_WorldStatic | FCC_WorldDynamic | FCC_Pawn,
+		ECC_WorldStatic | ECC_WorldDynamic | ECC_Pawn,
 		CollisionShape,
 		QueryParams
 	);
@@ -148,9 +150,10 @@ void UBP_PortalMechanic::ApplyMetaImpactToActor(AActor* TargetActor, FVector Imp
 			float Distance = FVector::Dist(TargetActor->GetActorLocation(), ImpactPoint);
 			float AttenuatedForce = Force * FMath::Max(0.0f, (RadialRadius - Distance) / RadialRadius);
 
-			TargetActor->GetRootComponent()->AddImpulse(Direction * AttenuatedForce * 1000.0f, NAME_None, true);
-
-			UE_LOG(LogTemp, Log, TEXT("BPC_PortalMechanic::ApplyMetaImpactToActor - Applied physics impulse to [%s]"), *TargetActor->GetName());
+			//TargetActor->GetRootComponent()->AddImpulse(Direction * AttenuatedForce * 1000.0f, NAME_None, true);
+			UE_LOG(LogTemp, Log, TEXT("BPC_PortalMechanic.cpp154, make GunFIre Logic DD"), *TargetActor->GetName());
+			
+			//UE_LOG(LogTemp, Log, TEXT("BPC_PortalMechanic::ApplyMetaImpactToActor - Applied physics impulse to [%s]"), *TargetActor->GetName());
 		}
 	}
 }

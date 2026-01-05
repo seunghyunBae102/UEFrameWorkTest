@@ -110,10 +110,12 @@ bool ATerminal::PurchaseItem(UDA_ShopItem* Item, AActor* Buyer)
 	// 배송 시뮬레이션 (배달 시간 후 아이템 도착)
 	if (Item->DeliveryTime > 0.0f && GetWorld())
 	{
+		FTimerDelegate DeliveryDelegate;
+		DeliveryDelegate.BindUFunction(this, FName("OnDeliveryComplete"));
+		//DeliveryDelegate.BindUFunction(this,&OnDeliveryComplete);
 		GetWorld()->GetTimerManager().SetTimer(
-			FTimerHandle(),
-			this,
-			&ATerminal::OnDeliveryComplete,
+			DeliveryTimerHandle,
+			DeliveryDelegate,
 			Item->DeliveryTime,
 			false
 		);

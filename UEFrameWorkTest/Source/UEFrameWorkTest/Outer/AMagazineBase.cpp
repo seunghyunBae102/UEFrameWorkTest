@@ -31,7 +31,7 @@ AMagazineBase::AMagazineBase()
 
 	// 탄약 관리 컴포넌트 설정
 	MagLogisticComponent = CreateDefaultSubobject<UBP_MagLogistic>(TEXT("MagLogistic"));
-	MagLogisticComponent->SetupAttachment(RootComponent);
+	//MagLogisticComponent->SetupAttachment(RootComponent);
 
 	// 기본값 설정
 	MaxCapacity = 30;
@@ -192,7 +192,7 @@ void AMagazineBase::TakeToInventory()
 	if (CollisionComponent)
 	{
 		CollisionComponent->SetSimulatePhysics(false);
-		CollisionComponent->SetCollisionEnabled(ECC_NoCollision);
+		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
 	OnTakenToInventory.Broadcast();
@@ -220,7 +220,7 @@ void AMagazineBase::DropFromInventory(FVector DropLocation, FVector DropVelocity
 	// 물리 활성화
 	if (CollisionComponent)
 	{
-		CollisionComponent->SetCollisionEnabled(ECC_QueryAndPhysics);
+		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		CollisionComponent->SetSimulatePhysics(true);
 
 		// 초기 속도 설정
