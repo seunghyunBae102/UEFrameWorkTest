@@ -78,7 +78,9 @@ public:
 	// 강인도 감쇄력 (공격 시) / 강인도 제공량 (방어구)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defense")
 	float PoiseValue = 0.0f;
-
+	//체력인
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Health")
+	float HealthValue;
 	// 스탯 보정치 (Map: Attribute -> Scaling Grade)
 	// 예: {Strength : A, Dexterity : D}
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scaling")

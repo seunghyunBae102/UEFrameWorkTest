@@ -3,188 +3,88 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Data/DA_InnerEquipment.h"
-#include "GameplayTagContainer.h"
 #include "BPC_RPGStats.generated.h"
 
+// Forward Declarations
+class UDA_CharacterBaseStats;
+
+// Delegate for poise change events
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPoiseChanged, float, NewPoise, float, MaxPoise);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPoiseBroken);
+
 /**
- * BPC_RPGStats - RPG 수치 계산 엔진
- * 
+ * BPC_RPGStats
+ *
+ * Inner World 캐릭터의 모든 RPG 관련 스탯(체력, 강인도 등)을 관리하는 핵심 로직 컴포넌트입니다.
+ * 이 프로토타입에서는 '강인도(Poise)' 시스템만 우선 구현합니다.
+ *
  * 역할:
- * - 4대 스탯(힘, 민, 지, 체) 관리
- * - 장비 보정치 계산
- * - 최종 데미지 연산
- * - 강인도(Poise) 시스템 관리
- * 
- * 규칙:
- * - 모든 스탯은 데이터 에셋(UDA_InnerEquipment)에서 받아옴
- * - bool 변수 대신 GameplayTags 사용 (예: "State.Dead", "State.Stagger")
- * - Tick 비활성화 (이벤트/함수 호출로만 작동)
- * - 타이머로 강인도 회복 관리
+ * - DA_CharacterBaseStats 에셋에서 기본 수치를 가져와 초기화합니다.
+ * - 강인도 피해를 적용하고 현재 강인도를 관리합니다.
+ * - Tick을 사용하지 않고 Timer를 이용해 강인도 회복 로직을 처리합니다.
+ * - 강인도 변화 및 파괴 이벤트를 외부에 알립니다. (Event-Driven)
  */
-UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
-class UEFRAMEWORKTEST_API UBP_RPGStats : public UActorComponent
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+class UEFRAMEWORKTEST_API UBPC_RPGStats : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	UBP_RPGStats();
+	UBPC_RPGStats();
 
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	/**
+	 * @brief 이 캐릭터의 기본 스탯을 정의하는 데이터 에셋입니다.
+	 * 블루프린트에서 이 컴포넌트를 추가할 때 반드시 할당해야 합니다.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Config")
+	TObjectPtr<UDA_CharacterBaseStats> BaseStatsDataAsset;
 
-	// ==================== Properties ====================
-
-	// 기본 스탯 (힘, 민, 지, 체)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	FInnerAttributes BaseAttributes;
-
-	// 현재 강인도 (Poise)
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
-	float CurrentPoise = 100.0f;
-
-	// 최대 강인도
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	float MaxPoise = 100.0f;
-
-	// 강인도 회복 시간 (초)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	float PoiseRecoveryDelay = 5.0f;
-
-	// 초당 강인도 회복량
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	float PoiseRecoveryRate = 20.0f;
-
-	// 현재 장착 중인 장비들
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Equipment")
-	TArray<UDA_InnerEquipment*> EquippedGear;
-
-	// 상태 태그 (State.Dead, State.Stagger, State.Poisoned 등)
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "State")
-	FGameplayTagContainer StateTagContainer;
-
-	// ==================== Events ====================
-
-	// 스탯이 변경되었을 때 (예: 장비 착용)
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStatsChanged, FInnerAttributes, NewAttributes, float, NewMaxPoise);
-	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FOnStatsChanged OnStatsChanged;
-
-	// 강인도가 변경되었을 때
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPoiseChanged, float, CurrentPoise, float, MaxPoise);
+	/** @brief 강인도 수치가 변경될 때 호출되는 이벤트입니다. (UI 업데이트용) */
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnPoiseChanged OnPoiseChanged;
 
-	// 강인도가 0이 되어 Stagger 상태로 진입했을 때
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStaggerState);
+	/** @brief 강인도가 0이 되어 파괴되었을 때 호출되는 이벤트입니다. (스태거 애니메이션 재생용) */
 	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FOnStaggerState OnStaggerState;
-
-	// ==================== Methods ====================
+	FOnPoiseBroken OnPoiseBroken;
 
 	/**
-	 * 장비 착용 (스탯 보정 적용)
-	 * @param Gear: 장착할 장비
+	 * @brief 캐릭터에게 강인도 피해를 적용합니다.
+	 * @param DamageAmount 적용할 강인도 피해량
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Equipment")
-	void EquipGear(UDA_InnerEquipment* Gear);
+	UFUNCTION(BlueprintCallable, Category = "RPGStats|Poise")
+	void ApplyPoiseDamage(float DamageAmount);
 
-	/**
-	 * 장비 해제 (스탯 보정 제거)
-	 * @param Gear: 해제할 장비
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Equipment")
-	void UnequipGear(UDA_InnerEquipment* Gear);
-
-	/**
-	 * 최종 공격력 계산 (보정치 적용)
-	 * @param Weapon: 무기 데이터 에셋
-	 * @return 최종 물리 공격력
-	 */
-	UFUNCTION(BlueprintPure, Category = "Calculation")
-	float CalculateAttackPower(UDA_InnerEquipment* Weapon);
-
-	/**
-	 * 최종 마법 공격력 계산 (보정치 적용)
-	 * @param Weapon: 무기 데이터 에셋
-	 * @return 최종 마법 공격력
-	 */
-	UFUNCTION(BlueprintPure, Category = "Calculation")
-	float CalculateMagicPower(UDA_InnerEquipment* Weapon);
-
-	/**
-	 * 강인도 피해 적용
-	 * @param PoiseDamage: 입을 강인도 피해
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Stats")
-	void TakePoiseDamage(float PoiseDamage);
-
-	/**
-	 * 강인도 회복
-	 * @param Amount: 회복할 강인도
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Stats")
-	void RecoverPoise(float Amount);
-
-	/**
-	 * Stagger 상태에서 벗어나기
-	 */
-	UFUNCTION(BlueprintCallable, Category = "State")
-	void ExitStagger();
-
-	/**
-	 * 특정 상태 태그 추가
-	 */
-	UFUNCTION(BlueprintCallable, Category = "State")
-	void AddStateTag(const FGameplayTag& Tag);
-
-	/**
-	 * 특정 상태 태그 제거
-	 */
-	UFUNCTION(BlueprintCallable, Category = "State")
-	void RemoveStateTag(const FGameplayTag& Tag);
-
-	/**
-	 * 특정 상태가 활성화되어 있는지 확인
-	 */
-	UFUNCTION(BlueprintPure, Category = "State")
-	bool HasStateTag(const FGameplayTag& Tag) const;
-
-	/**
-	 * 현재 강인도 조회
-	 */
-	UFUNCTION(BlueprintPure, Category = "Stats")
+	UFUNCTION(BlueprintPure, Category = "RPGStats|Poise")
 	float GetCurrentPoise() const { return CurrentPoise; }
 
-	/**
-	 * 현재 기본 스탯 조회
-	 */
-	UFUNCTION(BlueprintPure, Category = "Stats")
-	FInnerAttributes GetBaseAttributes() const { return BaseAttributes; }
+	UFUNCTION(BlueprintPure, Category = "RPGStats|Poise")
+	float GetMaxPoise() const { return MaxPoise; }
 
-	/**
-	 * Stagger 상태 확인 (편의 함수)
-	 */
-	UFUNCTION(BlueprintPure, Category = "State")
-	bool IsStaggering() const;
+protected:
+	virtual void BeginPlay() override;
 
 private:
-	// 강인도 회복 타이머 핸들
-	FTimerHandle PoiseRecoveryTimerHandle;
+	/** @brief 현재 강인도 수치입니다. */
+	UPROPERTY(VisibleAnywhere, Category = "RPGStats|Poise", meta = (AllowPrivateAccess = "true"))
+	float CurrentPoise;
+
+	/** @brief 최대 강인도 수치입니다. BeginPlay 시 데이터 에셋에서 초기화됩니다. */
+	UPROPERTY(VisibleAnywhere, Category = "RPGStats|Poise", meta = (AllowPrivateAccess = "true"))
+	float MaxPoise;
+
+	/** @brief 강인도 회복 딜레이를 처리하기 위한 타이머 핸들입니다. */
+	FTimerHandle PoiseRecoveryDelayTimerHandle;
+
+	/** @brief 강인도를 지속적으로 회복시키기 위한 타이머 핸들입니다. */
+	FTimerHandle PoiseRecoveryTickTimerHandle;
 
 	/**
-	 * 강인도 회복 틱 함수
+	 * @brief 강인도 회복 딜레이가 끝난 후 호출되어, 실제 회복을 시작합니다.
 	 */
-	void TickPoiseRecovery();
+	void StartPoiseRecovery();
 
 	/**
-	 * 특정 스탯에 대한 최종 보정값 계산
-	 * @param AttributeType: 계산할 스탯 종류
+	 * @brief PoiseRecoveryTickTimerHandle에 의해 주기적으로 호출되어 강인도를 회복시킵니다.
 	 */
-	float CalculateTotalScaling(EInnerAttributeType AttributeType);
-
-	/**
-	 * 스탯 변경 시 이벤트 브로드캐스트
-	 */
-	void BroadcastStatsChange();
+	void RecoverPoiseTick();
 };

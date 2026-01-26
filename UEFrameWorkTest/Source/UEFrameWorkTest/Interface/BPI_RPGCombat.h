@@ -116,4 +116,26 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "RPGCombat")
 	void ReceiveMetaImpact(FVector ImpactPoint, float Force, float RadialRadius);
+
+	/**
+ * @brief Applies poise damage to the character.
+ * @param DamageAmount The amount of poise damage to apply.
+ * @param HitResult Detailed information about the impact.
+ * @param DamageCauser The actor that caused this damage.
+ */
+UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "RPGCombat|Poise")
+void ApplyPoiseDamage(float DamageAmount, const FHitResult& HitResult, AActor* DamageCauser);
+	
+
+/** @brief Returns the maximum poise value of the character. */
+UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "RPGCombat|Poise")
+float GetMaxPoise() const;
+
+/** @brief Called when the character's poise is broken and they enter a groggy state. */
+UFUNCTION(BlueprintImplementableEvent, Category = "RPGCombat|Poise")
+void OnPoiseBroken();
+
+/** @brief Called when the character is staggered by an attack. */
+UFUNCTION(BlueprintImplementableEvent, Category = "RPGCombat|Poise")
+void OnStagger();
 };
