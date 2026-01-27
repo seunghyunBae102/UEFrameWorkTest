@@ -10,7 +10,7 @@ public class UEFrameWorkTest : ModuleRules
 	
 		PublicIncludePaths.AddRange(new string[] { "UEFrameWorkTest" });
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayTags" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayTags","AnimGraphRuntime","MotionWarping"});
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
 		// Uncomment if you are using Slate UI
