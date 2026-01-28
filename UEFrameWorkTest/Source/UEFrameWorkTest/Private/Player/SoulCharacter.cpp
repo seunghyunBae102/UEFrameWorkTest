@@ -14,7 +14,6 @@
 #include "Components/SphereComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "InputActionValue.h"
 #include "GameFramework/PlayerController.h"
 
 ASoulCharacter::ASoulCharacter()
@@ -58,96 +57,6 @@ void ASoulCharacter::BeginPlay()
 void ASoulCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-}
-
-void ASoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	// --- ENHANCED INPUT ---
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-		}
-	}
-
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
-	{
-		check(MovementLogicComp);
-		check(ParkourComp);
-		check(CombatComp);
-		
-		// --- MOVEMENT ---
-		if (MoveAction)
-		{
-			EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ASoulCharacter::Move);
-		}
-		if (JumpAction)
-		{
-			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, GET_FUNCTION_NAME_CHECKED(ASoulCharacter, OnJumpPressed));
-			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, GET_FUNCTION_NAME_CHECKED(ACharacter, StopJumping));
-		}
-		if (SprintAction)
-		{
-			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, MovementLogicComp, GET_FUNCTION_NAME_CHECKED(UMovementLogicComponent, StartSprint));
-			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, MovementLogicComp, GET_FUNCTION_NAME_CHECKED(UMovementLogicComponent, StopSprint));
-		}
-		if (DodgeAction)
-		{
-			EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Started, MovementLogicComp, GET_FUNCTION_NAME_CHECKED(UMovementLogicComponent, Dodge));
-		}
-		if (CrouchAction)
-		{
-			EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, MovementLogicComp, GET_FUNCTION_NAME_CHECKED(UMovementLogicComponent, ToggleCrouch));
-		}
-
-		// --- COMBAT ---
-		if (LightAttackAction)
-		{
-			EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Started, CombatComp, GET_FUNCTION_NAME_CHECKED(UCombatComponent, LightAttack));
-		}
-		if (GuardAction)
-		{
-			EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Started, CombatComp, GET_FUNCTION_NAME_CHECKED(UCombatComponent, StartGuard));
-			EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Completed, CombatComp, GET_FUNCTION_NAME_CHECKED(UCombatComponent, StopGuard));
-		}
-		
-		// --- CAMERA ---
-		if (LookAction)
-		{
-			EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASoulCharacter::Look);
-		}
-	}
-}
-
-void ASoulCharacter::Move(const FInputActionValue& Value)
-{
-	const FVector2D MovementVector = Value.Get<FVector2D>();
-
-	if (Controller != nullptr)
-	{
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		AddMovementInput(ForwardDirection, MovementVector.Y);
-	
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		AddMovementInput(RightDirection, MovementVector.X);
-	}
-}
-
-void ASoulCharacter::Look(const FInputActionValue& Value)
-{
-	const FVector2D LookAxisVector = Value.Get<FVector2D>();
-
-	if (Controller != nullptr)
-	{
-		AddControllerYawInput(LookAxisVector.X);
-		AddControllerPitchInput(LookAxisVector.Y);
-	}
 }
 
 float ASoulCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -198,15 +107,6 @@ float ASoulCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageE
 	}
 	
 	return ActualDamage;
-}
-
-void ASoulCharacter::OnJumpPressed()
-{
-	if (ParkourComp && ParkourComp->TryParkour())
-	{
-		return;
-	}
-	Jump();
 }
 
 void ASoulCharacter::Landed(const FHitResult& Hit)

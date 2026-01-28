@@ -15,8 +15,6 @@ class UMotionWarpingComponent;
 class UEquipmentComponent;
 class UCombatComponent;
 class USphereComponent;
-class UInputMappingContext;
-class UInputAction;
 struct FInputActionValue;
 
 /**
@@ -70,67 +68,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USphereComponent> ParryHitbox;
 
-	// --- INPUT (입력) ---
-	/** @brief 플레이어에게 적용할 기본 입력 매핑 컨텍스트입니다. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInputMappingContext> DefaultMappingContext;
-
-	/** @brief 이동 입력을 처리하는 InputAction 입니다. (Value Type: Axis2D) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInputAction> MoveAction;
-
-	/** @brief 카메라(시점) 이동을 처리하는 InputAction 입니다. (Value Type: Axis2D) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInputAction> LookAction;
-
-	/** @brief 점프 입력을 처리하는 InputAction 입니다. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInputAction> JumpAction;
-
-	/** @brief 달리기 입력을 처리하는 InputAction 입니다. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInputAction> SprintAction;
-
-	/** @brief 회피 입력을 처리하는 InputAction 입니다. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInputAction> DodgeAction;
-
-	/** @brief 앉기 입력을 처리하는 InputAction 입니다. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInputAction> CrouchAction;
-
-	/** @brief 약공격 입력을 처리하는 InputAction 입니다. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInputAction> LightAttackAction;
-
-	/** @brief 가드 입력을 처리하는 InputAction 입니다. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInputAction> GuardAction;
-
 protected:
 	virtual void BeginPlay() override;
-
-	/**
-	 * @brief 플레이어의 입력을 각 컴포넌트의 기능에 연결(바인딩)하는 함수입니다.
-	 * 예를 들어, 'Jump' 입력이 들어오면 OnJumpPressed() 함수를, 'LightAttack' 입력이 들어오면 CombatComp->LightAttack() 함수를 호출하도록 설정합니다.
-	 */
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	/** @brief 캐릭터가 대미지를 받을 때 호출되는 엔진 기본 함수를 오버라이드합니다. 받은 피해를 AttributeComponent에 전달하여 체력을 감소시키는 등의 처리를 합니다. */
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	
 	/** @brief 캐릭터가 공중에서 착지할 때 호출됩니다. 낙하 피해 계산 등을 위해 오버라이드합니다. */
 	virtual void Landed(const FHitResult& Hit) override;
-
-	// --- INPUT HANDLERS ---
-	void Move(const FInputActionValue& Value);
-	void Look(const FInputActionValue& Value);
-	
-	/**
-	 * @brief 점프 입력 시 호출되는 커스텀 함수입니다.
-	 * 일반 점프를 하기 전에 파쿠르 액션(맨틀 등)이 가능한지 먼저 확인하기 위해 별도로 구현되었습니다.
-	 */
-	void OnJumpPressed();
 
 	/** @brief AttributeComponent로부터 강인도가 모두 소진되었다는 알림을 받았을 때 호출됩니다. */
 	UFUNCTION()
